@@ -6,7 +6,7 @@ A web-based player that lets you watch YouTube videos with an interactive transc
 - Supports `.srt` and `.vtt` subtitle files  
 
 ## Usage
-1. Open [Live Demo][(https://Rahul-B-isht.github.io/youtube-transcript-player/)  
+1. Open [Live Demo][([https://Rahul-B-isht.github.io/youtube-transcript-player/])]
 3. Upload `.srt` or `.vtt` file  
 4. Hit "Load" and enjoy!  
 
