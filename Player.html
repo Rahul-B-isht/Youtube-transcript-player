@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>YouTube Transcript Player</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    #controls {
+      padding: 8px;
+      background: #f5f5f5;
+      border-bottom: 1px solid #ccc;
+    }
+    #player-container {
+      flex: 1;
+      display: flex;
+      height: 100%;
+      width: 100%;
+    }
+    #player {
+      flex: 2;
+      background: black;
+    }
+    #transcript {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1em;
+      border-left: 2px solid #ccc;
+      background: #fafafa;
+      color: black;
+    }
+    .transcript-line {
+      padding: 4px 6px;
+      cursor: pointer;
+      border-radius: 4px;
+      margin: 2px 0;
+    }
+    .transcript-line:hover {
+      background: #eee;
+    }
+    .active {
+      background: #007BFF;
+      color: white;
+      font-weight: bold;
+    }
+
+    /* FULLSCREEN STYLING */
+    #player-container:fullscreen {
+      display: flex;
+      flex-direction: row;
+    }
+    #player-container:fullscreen #player {
+      flex: 2;
+    }
+    #player-container:fullscreen #transcript {
+      flex: 1;
+      background: #000;
+      color: #fff;
+      border-left: 2px solid #333;
+    }
+    #player-container:fullscreen .transcript-line:hover {
+      background: #333;
+    }
+    #player-container:fullscreen .active {
+      background: #ff9800;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+
+<div id="controls">
+  <input type="text" id="youtubeUrl" placeholder="Paste YouTube URL" size="40">
+  <input type="file" id="transcriptFile" accept=".srt,.vtt">
+  <button onclick="loadVideo()">Load</button>
+  <button onclick="toggleFullscreen()">Fullscreen</button>
+</div>
+
+<div id="player-container">
+  <div id="player"></div>
+  <div id="transcript">Upload transcript to see text here...</div>
+</div>
+
+<script src="https://www.youtube.com/iframe_api"></script>
+<script>
+  let player;
+  let transcriptCues = [];
+  let lastActiveCue = null;
+
+  // Load YouTube IFrame
+  function onYouTubeIframeAPIReady() {
+    player = new YT.Player('player', {
+      height: '100%',
+      width: '100%',
+      videoId: '',
+      playerVars: { controls: 1 },
+      events: { 'onReady': onPlayerReady }
+    });
+  }
+
+  function onPlayerReady() {
+    setInterval(updateTranscriptHighlight, 500);
+  }
+
+  // Parse SRT text
+  function parseSRT(data) {
+    const pattern = /(\d+)\s+(\d{2}:\d{2}:\d{2}),(\d{3}) --> (\d{2}:\d{2}:\d{2}),(\d{3})\s+([\s\S]*?)(?=\n\n|\n*$)/g;
+    let result, cues = [];
+    while ((result = pattern.exec(data)) !== null) {
+      const start = toSeconds(result[2], result[3]);
+      const end = toSeconds(result[4], result[5]);
+      const text = result[6].replace(/\n/g, ' ');
+      cues.push({ start, end, text });
+    }
+    return cues;
+  }
+
+  function toSeconds(time, ms) {
+    const parts = time.split(':').map(Number);
+    return parts[0]*3600 + parts[1]*60 + parts[2] + parseInt(ms)/1000;
+  }
+
+  // Build transcript UI
+  function renderTranscript(cues) {
+    const container = document.getElementById('transcript');
+    container.innerHTML = '';
+    cues.forEach(cue => {
+      const div = document.createElement('div');
+      div.className = 'transcript-line';
+      div.textContent = cue.text;
+      div.onclick = () => player.seekTo(cue.start, true);
+      cue.element = div;
+      container.appendChild(div);
+    });
+  }
+
+  // Highlight transcript line
+  function updateTranscriptHighlight() {
+    if (!player || !transcriptCues.length) return;
+    const state = player.getPlayerState();
+    if (state !== YT.PlayerState.PLAYING && state !== YT.PlayerState.PAUSED) return;
+
+    const current = player.getCurrentTime();
+    let activeCue = null;
+    transcriptCues.forEach(cue => {
+      if (current >= cue.start && current <= cue.end) {
+        cue.element.classList.add('active');
+        activeCue = cue;
+      } else {
+        cue.element.classList.remove('active');
+      }
+    });
+    if (activeCue && activeCue !== lastActiveCue) {
+      activeCue.element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      lastActiveCue = activeCue;
+    }
+  }
+
+  // Load video + transcript
+  function loadVideo() {
+    const url = document.getElementById('youtubeUrl').value.trim();
+    const match = url.match(/(?:v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+    if (match) {
+      player.loadVideoById(match[1]);
+    } else {
+      alert("Invalid YouTube URL");
+      return;
+    }
+
+    const file = document.getElementById('transcriptFile').files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        transcriptCues = parseSRT(e.target.result);
+        renderTranscript(transcriptCues);
+      };
+      reader.readAsText(file);
+    } else {
+      document.getElementById('transcript').innerHTML = "No transcript loaded.";
+    }
+  }
+
+  // Fullscreen toggle
+  function toggleFullscreen() {
+    const elem = document.getElementById("player-container");
+    if (!document.fullscreenElement) {
+      elem.requestFullscreen().catch(err => {
+        alert(`Error attempting fullscreen: ${err.message}`);
+      });
+    } else {
+      document.exitFullscreen();
+    }
+  }
+</script>
+</body>
+</html>
