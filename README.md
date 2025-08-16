@@ -1,2 +1,15 @@
-# Youtube-transcript-player
-A simple web player that shows YouTube video with side-by-side interactive transcript (supports fullscreen).
+# YouTube Transcript Player
+
+A web-based player that lets you watch YouTube videos with an interactive transcript on the side.  
+- Click transcript lines to jump in video  
+- Works in fullscreen (video left, transcript right)  
+- Supports `.srt` and `.vtt` subtitle files  
+
+## Usage
+1. Open [Live Demo](https://Rahul-B-isht.github.io/youtube-transcript-player/)  
+2. Paste a YouTube URL  
+3. Upload `.srt` or `.vtt` file  
+4. Hit "Load" and enjoy!  
+
+## Contributing
+Pull requests welcome! Feel free to fork and improve.
